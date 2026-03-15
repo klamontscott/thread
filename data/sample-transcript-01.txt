@@ -1,0 +1,31 @@
+INTERVIEWER: Thanks for sitting down with me today. Can you start by telling me a bit about how you currently manage your research process?
+
+PARTICIPANT: Sure. So I'm a product designer at a mid-size SaaS company, and we do a lot of user interviews — probably six to eight a month. The problem is that after we do the interviews, everything kind of lives in Google Docs. We take notes during the session, sometimes we record and transcribe, but then the synthesis part is really manual.
+
+INTERVIEWER: What does that manual synthesis look like for you?
+
+PARTICIPANT: Honestly, it's a lot of copy-pasting quotes into sticky notes, either physical ones or in FigJam. Then we try to group them into themes. It works, but it takes forever. Like, for a round of six interviews, I might spend two full days just doing synthesis. And by the end, I'm not even sure I caught everything.
+
+INTERVIEWER: That's a significant time investment. Do you feel like the output is worth the time?
+
+PARTICIPANT: Sometimes. When it works, we get these really clear themes that the whole team can rally around. But other times, I feel like we're just confirming what we already believed. There's a confirmation bias problem when humans do this manually — you naturally gravitate toward the quotes that support what you expected to find.
+
+INTERVIEWER: Have you tried any tools to help with this?
+
+PARTICIPANT: We tried Dovetail for a while, but it was expensive and the tagging was still manual. Our team tried to use ChatGPT for it once, but the results were really surface-level. It would just summarize the transcript without any real analytical depth. No themes, no evidence linking, no acknowledgment of what it didn't know. We need something that thinks like a researcher, not a summarizer.
+
+INTERVIEWER: What would an ideal tool look like for you?
+
+PARTICIPANT: I'd want something where I can paste a transcript and get back structured themes with the actual quotes mapped to them. And I'd want it to be honest about confidence levels — like, if there's only one quote supporting a theme, it should flag that as weak evidence, not present it as a finding. I also want it to surface things I might have missed, not just confirm my priors.
+
+INTERVIEWER: How would you want to interact with the output? Like, what format?
+
+PARTICIPANT: I think a combination of a high-level summary for stakeholders and then the detailed evidence underneath for the research team. Something I could share in a Slack message as the summary, but then link to the full analysis for anyone who wants to dig deeper. Right now I'm building two different artifacts — one for the team and one for leadership — and it's double the work.
+
+INTERVIEWER: What about trust? How would you feel about AI-generated research insights?
+
+PARTICIPANT: I'd be skeptical at first, honestly. But if it showed me its reasoning — like, "I identified this theme because of these three quotes" — that would go a long way. The worst thing would be if it just said "users want X" with no evidence. That's actually worse than no tool at all because people might act on it. I need to be able to audit the reasoning.
+
+INTERVIEWER: Last question — if this tool existed today, what's the first thing you'd use it for?
+
+PARTICIPANT: We just finished a round of five interviews about our onboarding flow. I have all the transcripts sitting in a folder. I'd love to just run them through something and see what comes out. Even if it's not perfect, it would give me a starting point that's better than staring at a blank FigJam board.

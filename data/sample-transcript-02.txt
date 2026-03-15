@@ -1,0 +1,27 @@
+INTERVIEWER: We're testing some early concepts for the analysis output screen. I'm going to show you a few different layouts and I'd love your honest reactions. Ready?
+
+PARTICIPANT: Yep, let's do it.
+
+INTERVIEWER: Okay, here's the first version. This shows the themes as a list with expandable sections.
+
+PARTICIPANT: Hmm, okay. I can see the themes, which is good. But they all look the same priority. Like, are these in order of importance? I can't tell what I should pay attention to first. If I'm sharing this with my PM, they're going to want to know the top takeaway immediately, not scroll through a flat list.
+
+INTERVIEWER: That's helpful. What about the confidence indicators — do you notice those?
+
+PARTICIPANT: Oh, the little badges? Yeah, I see them now. "High confidence," "Medium confidence." That's actually really useful. I wish they were bigger or more prominent though. That's the kind of thing that differentiates this from ChatGPT — the honesty about what it knows and doesn't know. I'd almost want that to be the organizing principle. Like, show me the high-confidence stuff first, then the maybes.
+
+INTERVIEWER: Let me show you the second version. This one has the executive summary at the top, then themes organized by confidence level.
+
+PARTICIPANT: Oh, this is way better. The summary at the top is exactly what I'd copy-paste into Slack for leadership. And having high-confidence themes separated from lower-confidence ones — that makes the information architecture really clear. I know where to look for solid findings and where to look for "interesting but needs more data."
+
+INTERVIEWER: What about the quotes under each theme?
+
+PARTICIPANT: I like that they're there but I don't want to see them all at once. Can they be collapsed by default? I want to verify the evidence when I need to, but most of the time I'm scanning the themes and descriptions. The quotes are the audit trail, not the primary interface.
+
+INTERVIEWER: Got it. One more thing — see the "Open Questions" section at the bottom?
+
+PARTICIPANT: Yes! I love this. This is the part that ChatGPT would never do. It's telling me what it doesn't know, which is arguably more valuable than what it does know. These are my research questions for the next round. If this tool can save me the synthesis time AND generate my next research plan, that's a game-changer.
+
+INTERVIEWER: On a scale of 1-5, how likely would you be to use this in your current workflow?
+
+PARTICIPANT: A solid 4. The only reason it's not a 5 is that I'd want to see it work with my actual data first. The concept is right, the hierarchy is right, but the proof is in whether the AI actually produces quality analysis or just plausible-sounding nonsense.
