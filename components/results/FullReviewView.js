@@ -358,6 +358,43 @@ export default function FullReviewView({
               />
             </div>
 
+            {/* Ask About This Theme — Placeholder */}
+            <div>
+              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-2">
+                Ask About This Theme
+              </h4>
+              <div className="rounded-lg border border-border bg-background p-3 space-y-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] font-semibold text-accent bg-accent-light px-1.5 py-0.5 rounded shrink-0 mt-px">You</span>
+                  <p className="text-sm text-secondary italic">
+                    &ldquo;Could this theme be driven by general tech skepticism rather than driverless-specific concerns?&rdquo;
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] font-semibold text-tertiary bg-background border border-border px-1.5 py-0.5 rounded shrink-0 mt-px">AI</span>
+                  <p className="text-sm text-secondary">
+                    Based on the transcript, the participant expressed enthusiasm for app-based ride hailing and navigation features, suggesting comfort with technology broadly. Their concern appears specific to autonomous vehicles — they referenced physical safety and lack of human judgment, not technology distrust.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Ask a follow-up question about this theme..."
+                  disabled
+                  className="flex-1 text-sm border border-border rounded-md px-3 py-1.5 bg-background placeholder:text-tertiary opacity-60 cursor-not-allowed"
+                />
+                <button
+                  type="button"
+                  disabled
+                  className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent text-white opacity-60 cursor-not-allowed"
+                >
+                  Ask
+                </button>
+              </div>
+              <p className="text-[10px] text-tertiary mt-1.5">Coming soon — interrogate the model with your domain expertise</p>
+            </div>
+
             {/* Confidence Override */}
             <div>
               <h4 className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-2">
