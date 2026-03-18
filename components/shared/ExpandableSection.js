@@ -11,24 +11,27 @@ export default function ExpandableSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div className="bg-surface rounded-xl shadow-sm overflow-hidden">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-sage-light/30 transition-colors"
+        aria-expanded={isOpen}
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface-hover transition-colors"
       >
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-base">{title}</h3>
+          <h3 className="font-semibold text-[15px]">{title}</h3>
           {count !== undefined && (
-            <span className="text-xs text-muted bg-border/50 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-secondary bg-background px-1.5 py-0.5 rounded">
               {count}
             </span>
           )}
         </div>
         <svg
-          className={`w-5 h-5 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-tertiary transition-transform ${isOpen ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -38,7 +41,9 @@ export default function ExpandableSection({
           />
         </svg>
       </button>
-      {isOpen && <div className="px-5 pb-5">{children}</div>}
+      {isOpen && (
+        <div className="px-5 pb-5 border-t border-border pt-4">{children}</div>
+      )}
     </div>
   );
 }

@@ -63,34 +63,41 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-10">
+      <main className="flex-1 w-full px-6 py-10">
         {status === "idle" && (
-          <div className="space-y-6">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight">
+          <div className="max-w-3xl mx-auto">
+            <div className="mb-6">
+              <h1 className="text-[28px] font-semibold tracking-tight">
                 Research Synthesis
               </h1>
-              <p className="text-sm text-muted">
+              <p className="text-sm text-secondary mt-1">
                 Paste an interview transcript to extract structured themes,
                 opportunities, and open questions.
               </p>
             </div>
 
-            <TranscriptInput value={transcript} onChange={setTranscript} />
-            <FocusQuestion value={focusQuestion} onChange={setFocusQuestion} />
-            <PhaseSelector value={phase} onChange={setPhase} />
-            <AnalyzeButton
-              onClick={handleAnalyze}
-              disabled={!transcript.trim()}
-              loading={false}
-            />
+            <div className="bg-surface rounded-xl shadow-sm p-6 space-y-5">
+              <TranscriptInput value={transcript} onChange={setTranscript} />
+              <FocusQuestion
+                value={focusQuestion}
+                onChange={setFocusQuestion}
+              />
+              <PhaseSelector value={phase} onChange={setPhase} />
+              <AnalyzeButton
+                onClick={handleAnalyze}
+                disabled={!transcript.trim()}
+                loading={false}
+              />
+            </div>
           </div>
         )}
 
         {status === "loading" && <LoadingState />}
 
         {status === "results" && results && (
-          <ResultsContainer results={results} onReset={handleReset} />
+          <div className="max-w-4xl mx-auto">
+            <ResultsContainer results={results} onReset={handleReset} />
+          </div>
         )}
 
         {status === "error" && (

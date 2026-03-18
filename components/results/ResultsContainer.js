@@ -6,14 +6,15 @@ import ModelConfidence from "./ModelConfidence";
 
 export default function ResultsContainer({ results, onReset }) {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Analysis Results</h2>
+    <div className="space-y-6">
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Results</h1>
         <button
+          type="button"
           onClick={onReset}
-          className="text-sm text-sage hover:text-sage/80 font-medium transition-colors"
+          className="text-sm text-accent hover:text-accent-hover font-medium transition-colors"
         >
-          Analyze Another
+          Analyze another
         </button>
       </div>
 

@@ -22,29 +22,15 @@ export default function LoadingState() {
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto py-20 text-center">
-      <div className="mb-8">
-        <div className="w-12 h-12 mx-auto rounded-xl bg-sage/10 flex items-center justify-center mb-6">
-          <div className="w-6 h-6 border-2 border-sage border-t-transparent rounded-full animate-spin" />
-        </div>
-        <p className="text-lg font-medium text-foreground mb-2">
-          Analyzing your transcript
-        </p>
-        <p className="text-sm text-muted transition-all duration-300">
-          {stages[stageIndex]}
-        </p>
+    <div className="max-w-sm mx-auto py-24 text-center" role="status">
+      <div className="mb-6">
+        <div className="w-5 h-5 mx-auto border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
       </div>
-
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div
-              className="h-4 bg-border/50 rounded-full"
-              style={{ width: `${85 - i * 15}%`, marginInline: "auto" }}
-            />
-          </div>
-        ))}
-      </div>
+      <p className="text-[15px] font-medium mb-1">Analyzing transcript</p>
+      <p className="text-sm text-secondary transition-all duration-300">
+        {stages[stageIndex]}
+      </p>
+      <span className="sr-only">Analysis in progress</span>
     </div>
   );
 }
