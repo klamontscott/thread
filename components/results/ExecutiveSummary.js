@@ -1,10 +1,10 @@
 export default function ExecutiveSummary({ text }) {
   return (
-    <div className="bg-surface rounded-xl shadow-sm p-5">
-      <h2 className="text-xs font-medium uppercase tracking-wider text-secondary mb-2">
+    <div className="rounded-xl shadow-sm p-5" style={{ background: "#EEF2FF" }}>
+      <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#312E81" }}>
         Executive Summary
       </h2>
-      <p className="text-[15px] leading-relaxed">{text}</p>
+      <p className="text-[15px] leading-relaxed" style={{ color: "#1E1B4B" }}>{text}</p>
     </div>
   );
 }

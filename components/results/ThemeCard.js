@@ -1,64 +1,104 @@
 "use client";
 
-import { useState } from "react";
 import ConfidenceBadge from "../shared/ConfidenceBadge";
-import QuoteCard from "../shared/QuoteCard";
 import RiskFlag from "../shared/RiskFlag";
 
-export default function ThemeCard({ theme }) {
-  const [quotesOpen, setQuotesOpen] = useState(false);
-
+export default function ThemeCard({
+  theme,
+  index = 0,
+  isReviewed,
+  onOpenReview,
+}) {
   return (
-    <div className="bg-background rounded-lg p-4 space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h4 className="font-semibold text-[15px]">{theme.title}</h4>
-          <p className="text-sm text-secondary mt-0.5">{theme.description}</p>
-        </div>
-        <ConfidenceBadge level={theme.confidence} />
-      </div>
+    <div
+      className="animate-fadeSlideUp"
+      style={{
+        animationDelay: `${300 + index * 120}ms`,
+        animationFillMode: "both",
+      }}
+    >
+      <div
+        className={`
+          overflow-hidden transition-all duration-300
+          border-l-[3px]
+          bg-surface shadow-sm
+          hover:shadow-md hover:-translate-y-0.5
+          cursor-pointer
+        `}
+        style={{
+          borderLeftColor: isReviewed ? "var(--color-accent)" : "var(--color-border-strong)",
+          borderLeftStyle: "solid",
+          borderRadius: "0 8px 8px 0",
+        }}
+        onClick={() => onOpenReview(theme)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && onOpenReview(theme)}
+      >
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="font-semibold text-[15px]">{theme.title}</h4>
+                <ConfidenceBadge level={theme.confidence} />
+              </div>
+              <p className="text-sm text-secondary mt-1">
+                {theme.description}
+              </p>
+            </div>
 
-      {theme.supportingQuotes.length > 0 && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setQuotesOpen(!quotesOpen)}
-            aria-expanded={quotesOpen}
-            className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-tertiary hover:text-secondary transition-colors"
-          >
-            <span>Supporting Evidence</span>
-            <svg
-              className={`w-3.5 h-3.5 transition-transform ${quotesOpen ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-          {quotesOpen && (
-            <div className="mt-2">
-              {theme.supportingQuotes.map((quote, i) => (
-                <QuoteCard key={i} text={quote.text} speaker={quote.speaker} />
+            <div className="flex items-center gap-2 shrink-0">
+              {isReviewed ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-accent uppercase tracking-wider">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  Reviewed
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-tertiary uppercase tracking-wider bg-background px-2 py-0.5 rounded border border-dashed border-border-strong">
+                  Needs Review
+                </span>
+              )}
+              {/* Arrow indicating panel opens */}
+              <svg
+                className="w-4 h-4 text-tertiary"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Risk flags */}
+          {theme.riskFlags?.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              {theme.riskFlags.map((flag, i) => (
+                <RiskFlag key={i} text={flag} />
               ))}
             </div>
           )}
         </div>
-      )}
-
-      {theme.riskFlags.length > 0 && (
-        <div className="space-y-1.5">
-          {theme.riskFlags.map((flag, i) => (
-            <RiskFlag key={i} text={flag} />
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

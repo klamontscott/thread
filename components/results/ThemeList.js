@@ -1,18 +1,25 @@
-import ExpandableSection from "../shared/ExpandableSection";
 import ThemeCard from "./ThemeCard";
 
-export default function ThemeList({ themes }) {
+export default function ThemeList({ themes, reviewedThemes, onOpenReview }) {
   return (
-    <ExpandableSection
-      title="Themes"
-      count={themes.length}
-      defaultOpen={true}
-    >
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-[15px]">Themes</h3>
+        <span className="text-xs text-tertiary">
+          {themes.length} identified
+        </span>
+      </div>
       <div className="space-y-3">
-        {themes.map((theme) => (
-          <ThemeCard key={theme.id} theme={theme} />
+        {themes.map((theme, i) => (
+          <ThemeCard
+            key={theme.id}
+            theme={theme}
+            index={i}
+            isReviewed={reviewedThemes.has(theme.id)}
+            onOpenReview={onOpenReview}
+          />
         ))}
       </div>
-    </ExpandableSection>
+    </div>
   );
 }

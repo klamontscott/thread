@@ -96,7 +96,7 @@ export default function Home() {
 
         {status === "results" && results && (
           <div className="max-w-4xl mx-auto">
-            <ResultsContainer results={results} onReset={handleReset} />
+            <ResultsContainer results={results} transcript={transcript} onReset={handleReset} />
           </div>
         )}
 
