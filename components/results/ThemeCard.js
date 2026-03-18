@@ -24,7 +24,7 @@ export default function ThemeCard({ theme }) {
             type="button"
             onClick={() => setQuotesOpen(!quotesOpen)}
             aria-expanded={quotesOpen}
-            className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-secondary hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-tertiary hover:text-secondary transition-colors"
           >
             <span>Supporting Evidence</span>
             <svg
