@@ -1,7 +1,7 @@
 export default function Header() {
   return (
     <header className="bg-surface border-b border-border">
-      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div className="max-w-5xl mx-auto px-6 h-11 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <svg
             width="20"
