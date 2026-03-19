@@ -45,6 +45,35 @@ export default function ThemeCard({
               <p className="text-sm text-secondary mt-1">
                 {theme.description}
               </p>
+
+              {/* Evidence strength indicators */}
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                {theme.mentionCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-secondary">
+                    <svg className="w-3.5 h-3.5 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2z" clipRule="evenodd" />
+                    </svg>
+                    Referenced {theme.mentionCount} times
+                  </span>
+                )}
+                {theme.relatedKeywords?.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {theme.relatedKeywords.slice(0, 4).map((kw, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-medium text-accent bg-accent-light px-1.5 py-0.5 rounded"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                    {theme.relatedKeywords.length > 4 && (
+                      <span className="text-[10px] text-tertiary">
+                        +{theme.relatedKeywords.length - 4}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">

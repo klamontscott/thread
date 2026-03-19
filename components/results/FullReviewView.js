@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect } from "react";
 import ConfidenceBadge from "../shared/ConfidenceBadge";
+import TranscriptHeatmap from "../shared/TranscriptHeatmap";
 
 const CONFIDENCE_OPTIONS = ["high", "medium", "low"];
 
-function HighlightedTranscript({ transcript, quotes, activeQuoteIndex }) {
+function HighlightedTranscript({ transcript, quotes, activeQuoteIndex, activeKeyword }) {
   // Build highlighted version of transcript
   const segments = useMemo(() => {
     if (!quotes || quotes.length === 0) return [{ text: transcript, highlighted: false }];
@@ -44,6 +45,46 @@ function HighlightedTranscript({ transcript, quotes, activeQuoteIndex }) {
     return result;
   }, [transcript, quotes, activeQuoteIndex]);
 
+  // Render text with keyword highlighting within a segment
+  function renderText(text, baseStyle) {
+    if (!activeKeyword) return <span style={baseStyle}>{text}</span>;
+
+    const kwLower = activeKeyword.toLowerCase();
+    const textLower = text.toLowerCase();
+    const parts = [];
+    let lastIdx = 0;
+    let idx;
+    let keyIdx = 0;
+
+    while ((idx = textLower.indexOf(kwLower, lastIdx)) !== -1) {
+      if (idx > lastIdx) {
+        parts.push({ text: text.slice(lastIdx, idx), isKw: false });
+      }
+      parts.push({ text: text.slice(idx, idx + kwLower.length), isKw: true, keyIdx: keyIdx++ });
+      lastIdx = idx + kwLower.length;
+    }
+    if (lastIdx < text.length) {
+      parts.push({ text: text.slice(lastIdx), isKw: false });
+    }
+
+    if (parts.length <= 1 && !parts[0]?.isKw) return <span style={baseStyle}>{text}</span>;
+
+    return parts.map((p, i) =>
+      p.isKw ? (
+        <mark
+          key={i}
+          id={p.keyIdx === 0 ? "keyword-first" : undefined}
+          className="rounded-sm"
+          style={{ background: "#FEF3C7", color: "#92400E", padding: "0 2px" }}
+        >
+          {p.text}
+        </mark>
+      ) : (
+        <span key={i} style={baseStyle}>{p.text}</span>
+      )
+    );
+  }
+
   return (
     <div className="text-sm leading-relaxed whitespace-pre-wrap">
       {segments.map((seg, i) =>
@@ -58,10 +99,10 @@ function HighlightedTranscript({ transcript, quotes, activeQuoteIndex }) {
               paddingLeft: seg.isActive ? "6px" : "2px",
             }}
           >
-            {seg.text}
+            {renderText(seg.text, {})}
           </mark>
         ) : (
-          <span key={i} style={{ color: "#5C6370" }}>{seg.text}</span>
+          <span key={i}>{renderText(seg.text, { color: "#5C6370" })}</span>
         )
       )}
     </div>
@@ -78,6 +119,8 @@ export default function FullReviewView({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(null);
+  const [activeKeyword, setActiveKeyword] = useState(null);
+  const [activeHeatmapSegment, setActiveHeatmapSegment] = useState(null);
 
   const theme = themes[currentIndex];
   const annotation = annotations[theme.id] || {};
@@ -91,6 +134,9 @@ export default function FullReviewView({
   );
   const [customFlags, setCustomFlags] = useState(annotation.customFlags || []);
   const [newFlag, setNewFlag] = useState("");
+  const [askQuestion, setAskQuestion] = useState("");
+  const [askHistory, setAskHistory] = useState([]);
+  const [askLoading, setAskLoading] = useState(false);
 
   // Reset form when theme changes
   useEffect(() => {
@@ -101,6 +147,11 @@ export default function FullReviewView({
     setCustomFlags(a.customFlags || []);
     setNewFlag("");
     setActiveQuoteIndex(null);
+    setActiveKeyword(null);
+    setActiveHeatmapSegment(null);
+    setAskQuestion("");
+    setAskHistory([]);
+    setAskLoading(false);
   }, [currentIndex, theme.id, annotations]);
 
   // Lock body scroll
@@ -151,8 +202,59 @@ export default function FullReviewView({
 
   function scrollToQuote(quoteIndex) {
     setActiveQuoteIndex(quoteIndex);
+    setActiveKeyword(null);
+    setActiveHeatmapSegment(null);
     const el = document.getElementById(`quote-${quoteIndex}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function handleKeywordClick(keyword) {
+    const next = activeKeyword === keyword ? null : keyword;
+    setActiveKeyword(next);
+    setActiveQuoteIndex(null);
+    setActiveHeatmapSegment(null);
+    if (next) {
+      // Scroll to first keyword match after re-render
+      setTimeout(() => {
+        const el = document.getElementById("keyword-first");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+    }
+  }
+
+  function handleHeatmapSegmentClick(segmentIndex) {
+    setActiveHeatmapSegment(segmentIndex);
+    setActiveQuoteIndex(null);
+    // Scroll transcript to approximate position
+    const container = document.getElementById("transcript-scroll-container");
+    if (container) {
+      const pct = segmentIndex / 40;
+      container.scrollTo({
+        top: pct * container.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }
+
+  async function handleAsk() {
+    if (!askQuestion.trim() || askLoading) return;
+    const q = askQuestion.trim();
+    setAskQuestion("");
+    setAskLoading(true);
+    setAskHistory((prev) => [...prev, { role: "user", text: q }]);
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript, theme, question: q }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAskHistory((prev) => [...prev, { role: "ai", text: data.answer }]);
+    } catch {
+      setAskHistory((prev) => [...prev, { role: "ai", text: "Sorry, I couldn't process that question. Please try again." }]);
+    }
+    setAskLoading(false);
   }
 
   const activeConfidence = confidenceOverride || theme.confidence;
@@ -216,11 +318,12 @@ export default function FullReviewView({
               Click a quote on the right to highlight it here
             </p>
           </div>
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div id="transcript-scroll-container" className="flex-1 overflow-y-auto px-6 py-4">
             <HighlightedTranscript
               transcript={transcript}
               quotes={theme.supportingQuotes || []}
               activeQuoteIndex={activeQuoteIndex}
+              activeKeyword={activeKeyword}
             />
           </div>
         </div>
@@ -251,6 +354,54 @@ export default function FullReviewView({
               <p className="text-sm text-secondary mt-2 leading-relaxed">
                 {theme.description}
               </p>
+            </div>
+
+            {/* Evidence Strength */}
+            <div>
+              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-2">
+                Evidence Strength
+              </h4>
+              {theme.mentionCount > 0 && (
+                <div className="flex items-center gap-1.5 mb-2">
+                  <svg className="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium text-secondary">
+                    Referenced {theme.mentionCount} times in transcript
+                  </span>
+                </div>
+              )}
+              {theme.relatedKeywords?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {theme.relatedKeywords.map((kw, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleKeywordClick(kw)}
+                      className={`
+                        text-[11px] font-medium px-2 py-0.5 rounded transition-all
+                        ${activeKeyword === kw
+                          ? "bg-accent text-white shadow-sm"
+                          : "text-accent bg-accent-light hover:bg-accent hover:text-white"
+                        }
+                      `}
+                    >
+                      {kw}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {transcript && theme.relatedKeywords?.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-tertiary mb-1">Click a segment to jump to that position</p>
+                  <TranscriptHeatmap
+                    transcript={transcript}
+                    keywords={theme.relatedKeywords}
+                    onSegmentClick={handleHeatmapSegmentClick}
+                    activeSegment={activeHeatmapSegment}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Supporting Evidence */}
@@ -358,41 +509,58 @@ export default function FullReviewView({
               />
             </div>
 
-            {/* Ask About This Theme — Placeholder */}
+            {/* Ask About This Theme */}
             <div>
               <h4 className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-2">
                 Ask About This Theme
               </h4>
-              <div className="rounded-lg border border-border bg-background p-3 space-y-3">
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] font-semibold text-accent bg-accent-light px-1.5 py-0.5 rounded shrink-0 mt-px">You</span>
-                  <p className="text-sm text-secondary italic">
-                    &ldquo;Could this theme be driven by general tech skepticism rather than driverless-specific concerns?&rdquo;
-                  </p>
+              {askHistory.length > 0 && (
+                <div className="rounded-lg border border-border bg-background p-3 space-y-3 mb-2 max-h-64 overflow-y-auto">
+                  {askHistory.map((msg, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 mt-px ${
+                        msg.role === "user"
+                          ? "text-accent bg-accent-light"
+                          : "text-tertiary bg-background border border-border"
+                      }`}>
+                        {msg.role === "user" ? "You" : "Thread"}
+                      </span>
+                      <p className={`text-sm ${msg.role === "user" ? "text-secondary italic" : "text-secondary"}`}>
+                        {msg.role === "user" ? `\u201C${msg.text}\u201D` : msg.text}
+                      </p>
+                    </div>
+                  ))}
+                  {askLoading && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-[10px] font-semibold text-tertiary bg-background border border-border px-1.5 py-0.5 rounded shrink-0 mt-px">Thread</span>
+                      <div className="flex gap-1 items-center pt-1">
+                        <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse" />
+                        <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                        <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] font-semibold text-tertiary bg-background border border-border px-1.5 py-0.5 rounded shrink-0 mt-px">AI</span>
-                  <p className="text-sm text-secondary">
-                    Based on the transcript, the participant expressed enthusiasm for app-based ride hailing and navigation features, suggesting comfort with technology broadly. Their concern appears specific to autonomous vehicles — they referenced physical safety and lack of human judgment, not technology distrust.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-2">
+              )}
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Ask a follow-up question about this theme..."
-                  disabled
-                  className="flex-1 text-sm border border-border rounded-md px-3 py-1.5 bg-background placeholder:text-tertiary opacity-60 cursor-not-allowed"
+                  value={askQuestion}
+                  onChange={(e) => setAskQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAsk()}
+                  placeholder="Ask a question about this theme..."
+                  className="flex-1 text-sm border border-border rounded-md px-3 py-1.5 bg-background placeholder:text-tertiary focus:outline-none focus:border-accent"
                 />
                 <button
                   type="button"
-                  disabled
-                  className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent text-white opacity-60 cursor-not-allowed"
+                  onClick={handleAsk}
+                  disabled={!askQuestion.trim() || askLoading}
+                  className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition-colors"
                 >
                   Ask
                 </button>
               </div>
-              <p className="text-[10px] text-tertiary mt-1.5">Coming soon — interrogate the model with your domain expertise</p>
+              <p className="text-[10px] text-tertiary mt-1.5">Interrogate the model with your domain expertise</p>
             </div>
 
             {/* Confidence Override */}
@@ -435,6 +603,30 @@ export default function FullReviewView({
                 </p>
               )}
             </div>
+
+            {/* Mark Reviewed */}
+            <button
+              type="button"
+              onClick={saveCurrentTheme}
+              className={`
+                w-full text-sm font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2
+                ${isReviewed
+                  ? "bg-accent/10 text-accent border border-accent/30"
+                  : "bg-accent text-white hover:bg-accent-hover shadow-sm hover:shadow"
+                }
+              `}
+            >
+              {isReviewed ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Reviewed — Click to Update
+                </>
+              ) : (
+                "Mark as Reviewed"
+              )}
+            </button>
           </div>
         </div>
       </div>

@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from "react";
 import ConfidenceBadge from "../shared/ConfidenceBadge";
+import TranscriptHeatmap from "../shared/TranscriptHeatmap";
 
 const CONFIDENCE_OPTIONS = ["high", "medium", "low"];
 
 export default function ThemeReviewPanel({
   theme,
+  transcript,
   annotation,
   onSave,
   onClose,
+  onOpenFullReview,
 }) {
   const [notes, setNotes] = useState(annotation?.notes || "");
   const [confidenceOverride, setConfidenceOverride] = useState(
@@ -22,6 +25,9 @@ export default function ThemeReviewPanel({
     annotation?.customFlags || []
   );
   const [newFlag, setNewFlag] = useState("");
+  const [askQuestion, setAskQuestion] = useState("");
+  const [askHistory, setAskHistory] = useState([]);
+  const [askLoading, setAskLoading] = useState(false);
 
   // Lock body scroll when panel is open
   useEffect(() => {
@@ -49,6 +55,27 @@ export default function ThemeReviewPanel({
 
   function removeFlag(index) {
     setCustomFlags((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleAsk() {
+    if (!askQuestion.trim() || askLoading) return;
+    const q = askQuestion.trim();
+    setAskQuestion("");
+    setAskLoading(true);
+    setAskHistory((prev) => [...prev, { role: "user", text: q }]);
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript, theme, question: q }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAskHistory((prev) => [...prev, { role: "ai", text: data.answer }]);
+    } catch {
+      setAskHistory((prev) => [...prev, { role: "ai", text: "Sorry, I couldn't process that question. Please try again." }]);
+    }
+    setAskLoading(false);
   }
 
   function handleSave() {
@@ -104,6 +131,44 @@ export default function ThemeReviewPanel({
             <p className="text-sm text-secondary leading-relaxed">
               {theme.description}
             </p>
+          </div>
+
+          {/* Evidence Strength */}
+          <div>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-2">
+              Evidence Strength
+            </h3>
+            {theme.mentionCount > 0 && (
+              <div className="flex items-center gap-1.5 mb-2">
+                <svg className="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm font-medium text-secondary">
+                  Referenced {theme.mentionCount} times in transcript
+                </span>
+              </div>
+            )}
+            {theme.relatedKeywords?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {theme.relatedKeywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="text-[11px] font-medium text-accent bg-accent-light px-2 py-0.5 rounded"
+                  >
+                    {kw}
+                  </span>
+                ))}
+              </div>
+            )}
+            {transcript && theme.relatedKeywords?.length > 0 && (
+              <div>
+                <p className="text-[10px] text-tertiary mb-1">Keyword density across transcript</p>
+                <TranscriptHeatmap
+                  transcript={transcript}
+                  keywords={theme.relatedKeywords}
+                />
+              </div>
+            )}
           </div>
 
           {/* Confidence Override */}
@@ -267,41 +332,58 @@ export default function ThemeReviewPanel({
             />
           </div>
 
-          {/* Ask About This Theme — Placeholder */}
+          {/* Ask About This Theme */}
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-2">
               Ask About This Theme
             </h3>
-            <div className="rounded-lg border border-border bg-background p-3 space-y-3">
-              <div className="flex items-start gap-2">
-                <span className="text-[10px] font-semibold text-accent bg-accent-light px-1.5 py-0.5 rounded shrink-0 mt-px">You</span>
-                <p className="text-sm text-secondary italic">
-                  &ldquo;Could this theme be driven by general tech skepticism rather than driverless-specific concerns?&rdquo;
-                </p>
+            {askHistory.length > 0 && (
+              <div className="rounded-lg border border-border bg-background p-3 space-y-3 mb-2 max-h-64 overflow-y-auto">
+                {askHistory.map((msg, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 mt-px ${
+                      msg.role === "user"
+                        ? "text-accent bg-accent-light"
+                        : "text-tertiary bg-background border border-border"
+                    }`}>
+                      {msg.role === "user" ? "You" : "Thread"}
+                    </span>
+                    <p className={`text-sm ${msg.role === "user" ? "text-secondary italic" : "text-secondary"}`}>
+                      {msg.role === "user" ? `\u201C${msg.text}\u201D` : msg.text}
+                    </p>
+                  </div>
+                ))}
+                {askLoading && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[10px] font-semibold text-tertiary bg-background border border-border px-1.5 py-0.5 rounded shrink-0 mt-px">Thread</span>
+                    <div className="flex gap-1 items-center pt-1">
+                      <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse" />
+                      <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                      <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-start gap-2">
-                <span className="text-[10px] font-semibold text-tertiary bg-background border border-border px-1.5 py-0.5 rounded shrink-0 mt-px">AI</span>
-                <p className="text-sm text-secondary">
-                  Based on the transcript, the participant expressed enthusiasm for app-based ride hailing and navigation features, suggesting comfort with technology broadly. Their concern appears specific to autonomous vehicles — they referenced physical safety and lack of human judgment, not technology distrust.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-2">
+            )}
+            <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Ask a follow-up question about this theme..."
-                disabled
-                className="flex-1 text-sm border border-border rounded-md px-3 py-1.5 bg-background placeholder:text-tertiary opacity-60 cursor-not-allowed"
+                value={askQuestion}
+                onChange={(e) => setAskQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAsk()}
+                placeholder="Ask a question about this theme..."
+                className="flex-1 text-sm border border-border rounded-md px-3 py-1.5 bg-background placeholder:text-tertiary focus:outline-none focus:border-accent"
               />
               <button
                 type="button"
-                disabled
-                className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent text-white opacity-60 cursor-not-allowed"
+                onClick={handleAsk}
+                disabled={!askQuestion.trim() || askLoading}
+                className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition-colors"
               >
                 Ask
               </button>
             </div>
-            <p className="text-[10px] text-tertiary mt-1.5">Coming soon — interrogate the model with your domain expertise</p>
+            <p className="text-[10px] text-tertiary mt-1.5">Interrogate the model with your domain expertise</p>
           </div>
         </div>
 
@@ -314,13 +396,27 @@ export default function ThemeReviewPanel({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="text-sm font-semibold text-white bg-accent hover:bg-accent-hover px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all"
-          >
-            Save &amp; Mark Reviewed
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenFullReview && (
+              <button
+                type="button"
+                onClick={onOpenFullReview}
+                className="text-sm font-medium text-accent hover:text-accent-hover px-4 py-2.5 rounded-lg border border-accent/30 hover:border-accent transition-all flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-6v4.5m0-4.5h-4.5m4.5 0L15 9m-11.25 11.25v-4.5m0 4.5h4.5m-4.5 0L9 15m11.25 6v-4.5m0 4.5h-4.5m4.5 0L15 15" />
+                </svg>
+                Full Review
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              className="text-sm font-semibold text-white bg-accent hover:bg-accent-hover px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all"
+            >
+              Save &amp; Mark Reviewed
+            </button>
+          </div>
         </div>
       </div>
     </div>

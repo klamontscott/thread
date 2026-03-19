@@ -98,9 +98,14 @@ export default function ResultsContainer({ results, transcript, onReset }) {
       {activeTheme && (
         <ThemeReviewPanel
           theme={activeTheme}
+          transcript={transcript}
           annotation={annotations[activeTheme.id]}
           onSave={handleSaveReview}
           onClose={() => setActiveTheme(null)}
+          onOpenFullReview={() => {
+            setActiveTheme(null);
+            setFullReviewOpen(true);
+          }}
         />
       )}
 
