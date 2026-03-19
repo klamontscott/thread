@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 const COLORS = {
-  high: "#059669",
-  medium: "#D97706",
-  low: "#DC2626",
+  high: "#22C55E",
+  medium: "#F59E0B",
+  low: "#EF4444",
 };
 
 const LABELS = {

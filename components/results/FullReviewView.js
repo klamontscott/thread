@@ -1,51 +1,79 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import ConfidenceBadge from "../shared/ConfidenceBadge";
 import TranscriptHeatmap from "../shared/TranscriptHeatmap";
 
 const CONFIDENCE_OPTIONS = ["high", "medium", "low"];
 
-function HighlightedTranscript({ transcript, quotes, activeQuoteIndex, activeKeyword }) {
-  // Build highlighted version of transcript
+function HighlightedTranscript({
+  transcript,
+  quotes,
+  activeQuoteIndex,
+  activeKeyword,
+  userAnnotations,
+  activeAnnotationId,
+  onAnnotationClick,
+}) {
   const segments = useMemo(() => {
-    if (!quotes || quotes.length === 0) return [{ text: transcript, highlighted: false }];
+    // Collect all highlight ranges
+    const ranges = [];
 
-    // Find all quote positions in transcript
-    const matches = [];
-    quotes.forEach((quote, i) => {
+    // Quote ranges
+    (quotes || []).forEach((quote, i) => {
       const idx = transcript.toLowerCase().indexOf(quote.text.toLowerCase());
       if (idx !== -1) {
-        matches.push({ start: idx, end: idx + quote.text.length, index: i });
+        ranges.push({ start: idx, end: idx + quote.text.length, type: "quote", index: i });
+      }
+    });
+
+    // Annotation ranges
+    (userAnnotations || []).forEach((ann) => {
+      const idx = transcript.toLowerCase().indexOf(ann.selectedText.toLowerCase());
+      if (idx !== -1) {
+        ranges.push({ start: idx, end: idx + ann.selectedText.length, type: "annotation", id: ann.id, annotation: ann });
       }
     });
 
     // Sort by position
-    matches.sort((a, b) => a.start - b.start);
+    ranges.sort((a, b) => a.start - b.start);
+
+    // Remove overlapping ranges (keep first)
+    const filtered = [];
+    let lastEnd = 0;
+    ranges.forEach((r) => {
+      if (r.start >= lastEnd) {
+        filtered.push(r);
+        lastEnd = r.end;
+      }
+    });
 
     // Build segments
     const result = [];
     let cursor = 0;
-    matches.forEach((match) => {
-      if (match.start > cursor) {
-        result.push({ text: transcript.slice(cursor, match.start), highlighted: false });
+    filtered.forEach((range) => {
+      if (range.start > cursor) {
+        result.push({ text: transcript.slice(cursor, range.start), type: "text" });
       }
       result.push({
-        text: transcript.slice(match.start, match.end),
-        highlighted: true,
-        quoteIndex: match.index,
-        isActive: match.index === activeQuoteIndex,
+        text: transcript.slice(range.start, range.end),
+        type: range.type,
+        index: range.index,
+        id: range.id,
+        annotation: range.annotation,
+        isActiveQuote: range.type === "quote" && range.index === activeQuoteIndex,
+        isActiveAnnotation: range.type === "annotation" && range.id === activeAnnotationId,
       });
-      cursor = match.end;
+      cursor = range.end;
     });
     if (cursor < transcript.length) {
-      result.push({ text: transcript.slice(cursor), highlighted: false });
+      result.push({ text: transcript.slice(cursor), type: "text" });
     }
 
     return result;
-  }, [transcript, quotes, activeQuoteIndex]);
+  }, [transcript, quotes, activeQuoteIndex, userAnnotations, activeAnnotationId]);
 
-  // Render text with keyword highlighting within a segment
+  // Render text with keyword highlighting
   function renderText(text, baseStyle) {
     if (!activeKeyword) return <span style={baseStyle}>{text}</span>;
 
@@ -87,24 +115,52 @@ function HighlightedTranscript({ transcript, quotes, activeQuoteIndex, activeKey
 
   return (
     <div className="text-sm leading-relaxed whitespace-pre-wrap">
-      {segments.map((seg, i) =>
-        seg.highlighted ? (
-          <mark
-            key={i}
-            id={`quote-${seg.quoteIndex}`}
-            className="transition-colors duration-300 rounded-sm px-0.5 -mx-0.5"
-            style={{
-              background: seg.isActive ? "#C7D2FE" : "#EEF2FF",
-              borderLeft: seg.isActive ? "3px solid var(--color-accent)" : "3px solid transparent",
-              paddingLeft: seg.isActive ? "6px" : "2px",
-            }}
-          >
-            {renderText(seg.text, {})}
-          </mark>
-        ) : (
+      {segments.map((seg, i) => {
+        if (seg.type === "quote") {
+          return (
+            <mark
+              key={i}
+              id={`quote-${seg.index}`}
+              className="transition-colors duration-300 rounded-sm px-0.5 -mx-0.5"
+              style={{
+                background: seg.isActiveQuote ? "#C7D2FE" : "#EEF2FF",
+                borderLeft: seg.isActiveQuote ? "3px solid var(--color-accent)" : "3px solid transparent",
+                paddingLeft: seg.isActiveQuote ? "6px" : "2px",
+              }}
+            >
+              {renderText(seg.text, {})}
+            </mark>
+          );
+        }
+
+        if (seg.type === "annotation") {
+          return (
+            <mark
+              key={i}
+              id={`annotation-${seg.id}`}
+              className="transition-colors duration-200 rounded-sm cursor-pointer relative group"
+              style={{
+                background: seg.isActiveAnnotation ? "#BBF7D0" : "#DCFCE7",
+                borderBottom: "2px solid #22C55E",
+                padding: "0 2px",
+              }}
+              onClick={() => onAnnotationClick?.(seg.id)}
+            >
+              {seg.text}
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-white bg-emerald-500 rounded-full ml-0.5 align-super"
+                style={{ fontSize: "9px", lineHeight: 1 }}
+              >
+                {(userAnnotations || []).findIndex((a) => a.id === seg.id) + 1}
+              </span>
+            </mark>
+          );
+        }
+
+        return (
           <span key={i}>{renderText(seg.text, { color: "#5C6370" })}</span>
-        )
-      )}
+        );
+      })}
     </div>
   );
 }
@@ -138,6 +194,16 @@ export default function FullReviewView({
   const [askHistory, setAskHistory] = useState([]);
   const [askLoading, setAskLoading] = useState(false);
 
+  // Annotation state
+  const [transcriptAnnotations, setTranscriptAnnotations] = useState(
+    annotation.transcriptAnnotations || []
+  );
+  const [activeAnnotationId, setActiveAnnotationId] = useState(null);
+  const [pendingSelection, setPendingSelection] = useState(null);
+  const [pendingNote, setPendingNote] = useState("");
+  const transcriptContainerRef = useRef(null);
+  const pendingNoteInputRef = useRef(null);
+
   // Reset form when theme changes
   useEffect(() => {
     const a = annotations[theme.id] || {};
@@ -152,6 +218,10 @@ export default function FullReviewView({
     setAskQuestion("");
     setAskHistory([]);
     setAskLoading(false);
+    setTranscriptAnnotations(a.transcriptAnnotations || []);
+    setActiveAnnotationId(null);
+    setPendingSelection(null);
+    setPendingNote("");
   }, [currentIndex, theme.id, annotations]);
 
   // Lock body scroll
@@ -160,12 +230,20 @@ export default function FullReviewView({
     return () => { document.body.style.overflow = ""; };
   }, []);
 
+  // Focus the note input when pending selection appears
+  useEffect(() => {
+    if (pendingSelection && pendingNoteInputRef.current) {
+      pendingNoteInputRef.current.focus();
+    }
+  }, [pendingSelection]);
+
   function saveCurrentTheme() {
     onSave(theme.id, {
       notes,
       confidenceOverride,
       dismissedQuotes: Array.from(dismissedQuotes),
       customFlags,
+      transcriptAnnotations,
     });
   }
 
@@ -204,6 +282,7 @@ export default function FullReviewView({
     setActiveQuoteIndex(quoteIndex);
     setActiveKeyword(null);
     setActiveHeatmapSegment(null);
+    setActiveAnnotationId(null);
     const el = document.getElementById(`quote-${quoteIndex}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -213,8 +292,8 @@ export default function FullReviewView({
     setActiveKeyword(next);
     setActiveQuoteIndex(null);
     setActiveHeatmapSegment(null);
+    setActiveAnnotationId(null);
     if (next) {
-      // Scroll to first keyword match after re-render
       setTimeout(() => {
         const el = document.getElementById("keyword-first");
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -225,7 +304,7 @@ export default function FullReviewView({
   function handleHeatmapSegmentClick(segmentIndex) {
     setActiveHeatmapSegment(segmentIndex);
     setActiveQuoteIndex(null);
-    // Scroll transcript to approximate position
+    setActiveAnnotationId(null);
     const container = document.getElementById("transcript-scroll-container");
     if (container) {
       const pct = segmentIndex / 40;
@@ -234,6 +313,67 @@ export default function FullReviewView({
         behavior: "smooth",
       });
     }
+  }
+
+  // Text selection → annotation
+  const handleTranscriptMouseUp = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.toString().trim().length < 3) {
+      return;
+    }
+
+    const selectedText = selection.toString().trim();
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    const containerRect = transcriptContainerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+
+    const scrollContainer = document.getElementById("transcript-scroll-container");
+    const scrollTop = scrollContainer?.scrollTop || 0;
+
+    setPendingSelection({
+      text: selectedText,
+      top: rect.bottom - containerRect.top + scrollTop + 4,
+      left: Math.max(8, Math.min(rect.left - containerRect.left, containerRect.width - 280)),
+    });
+    setPendingNote("");
+  }, []);
+
+  function addAnnotation() {
+    if (!pendingSelection || !pendingNote.trim()) return;
+    const newAnnotation = {
+      id: Date.now(),
+      selectedText: pendingSelection.text,
+      note: pendingNote.trim(),
+      author: "You",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setTranscriptAnnotations((prev) => [...prev, newAnnotation]);
+    setPendingSelection(null);
+    setPendingNote("");
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function removeAnnotation(id) {
+    setTranscriptAnnotations((prev) => prev.filter((a) => a.id !== id));
+    if (activeAnnotationId === id) setActiveAnnotationId(null);
+  }
+
+  function handleAnnotationClick(id) {
+    setActiveAnnotationId(id === activeAnnotationId ? null : id);
+    setActiveQuoteIndex(null);
+    setActiveKeyword(null);
+    // Scroll to annotation in transcript
+    const el = document.getElementById(`annotation-${id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function scrollToAnnotationInTranscript(id) {
+    setActiveAnnotationId(id);
+    setActiveQuoteIndex(null);
+    setActiveKeyword(null);
+    const el = document.getElementById(`annotation-${id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   async function handleAsk() {
@@ -315,16 +455,77 @@ export default function FullReviewView({
               Source Transcript
             </h2>
             <p className="text-[11px] text-tertiary mt-0.5">
-              Click a quote on the right to highlight it here
+              Select text to add a comment
             </p>
           </div>
-          <div id="transcript-scroll-container" className="flex-1 overflow-y-auto px-6 py-4">
+          <div
+            id="transcript-scroll-container"
+            ref={transcriptContainerRef}
+            className="flex-1 overflow-y-auto px-6 py-4 relative"
+            onMouseUp={handleTranscriptMouseUp}
+          >
             <HighlightedTranscript
               transcript={transcript}
               quotes={theme.supportingQuotes || []}
               activeQuoteIndex={activeQuoteIndex}
               activeKeyword={activeKeyword}
+              userAnnotations={transcriptAnnotations}
+              activeAnnotationId={activeAnnotationId}
+              onAnnotationClick={handleAnnotationClick}
             />
+
+            {/* Floating annotation popover */}
+            {pendingSelection && (
+              <div
+                className="absolute z-20 bg-surface border border-border rounded-lg shadow-xl p-3 w-[270px] animate-fadeSlideUp"
+                style={{
+                  top: pendingSelection.top,
+                  left: pendingSelection.left,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-1.5">
+                  Add Comment
+                </div>
+                <p className="text-[11px] text-secondary italic mb-2 line-clamp-2">
+                  &ldquo;{pendingSelection.text}&rdquo;
+                </p>
+                <textarea
+                  ref={pendingNoteInputRef}
+                  value={pendingNote}
+                  onChange={(e) => setPendingNote(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      addAnnotation();
+                    }
+                    if (e.key === "Escape") {
+                      setPendingSelection(null);
+                    }
+                  }}
+                  placeholder="Your comment..."
+                  rows={2}
+                  className="w-full text-sm border border-border rounded-md px-2.5 py-1.5 bg-background placeholder:text-tertiary resize-none focus:outline-none focus:border-accent leading-relaxed"
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPendingSelection(null)}
+                    className="text-[11px] text-tertiary hover:text-secondary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addAnnotation}
+                    disabled={!pendingNote.trim()}
+                    className="text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1 rounded-md disabled:opacity-40 transition-colors"
+                  >
+                    Comment
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -443,6 +644,65 @@ export default function FullReviewView({
                 </div>
               </div>
             )}
+
+            {/* Transcript Comments */}
+            <div>
+              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-tertiary mb-2">
+                Transcript Comments
+                {transcriptAnnotations.length > 0 && (
+                  <span className="ml-1.5 text-emerald-600">{transcriptAnnotations.length}</span>
+                )}
+              </h4>
+              {transcriptAnnotations.length === 0 ? (
+                <p className="text-[11px] text-tertiary italic">
+                  Select text in the transcript to add a comment
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {transcriptAnnotations.map((ann, i) => (
+                    <div
+                      key={ann.id}
+                      className={`
+                        border-l-2 pl-3 py-2 rounded-r-md cursor-pointer transition-all duration-200
+                        ${activeAnnotationId === ann.id
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50/50"
+                        }
+                      `}
+                      onClick={() => scrollToAnnotationInTranscript(ann.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-white bg-emerald-500 rounded-full shrink-0">
+                              {i + 1}
+                            </span>
+                            <span className="text-[10px] font-medium text-emerald-700">{ann.author}</span>
+                            <span className="text-[10px] text-tertiary">{ann.timestamp}</span>
+                          </div>
+                          <p className="text-[11px] text-tertiary italic line-clamp-1 mb-0.5">
+                            &ldquo;{ann.selectedText}&rdquo;
+                          </p>
+                          <p className="text-sm text-secondary">{ann.note}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeAnnotation(ann.id);
+                          }}
+                          className="text-tertiary hover:text-secondary shrink-0 mt-0.5"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Risk Flags */}
             <div>
