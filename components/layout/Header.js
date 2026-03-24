@@ -1,8 +1,12 @@
-export default function Header() {
+export default function Header({ onLogoClick }) {
   return (
     <header className="bg-surface border-b border-border">
       <div className="px-6 h-11 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={onLogoClick}
+          className="flex items-center gap-2.5 hover:opacity-70 transition-opacity"
+          aria-label="Return to home"
+        >
           <svg
             width="20"
             height="20"
@@ -22,7 +26,7 @@ export default function Header() {
           <span className="text-[15px] font-semibold tracking-tight">
             Thread
           </span>
-        </div>
+        </button>
         <span className="text-xs text-tertiary font-medium">
           Research Synthesis
         </span>

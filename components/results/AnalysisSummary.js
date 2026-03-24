@@ -55,7 +55,7 @@ export default function AnalysisSummary({ results, reviewedCount, totalThemes })
     { key: "questions", value: results.openQuestions.length },
   ];
 
-  const maxStatValue = Math.max(...stats.map((s) => s.value), 1);
+  const maxStatValue = 8;
 
   return (
     <div

@@ -61,7 +61,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      <Header onLogoClick={handleReset} />
 
       <main className="flex-1 w-full px-6 py-10">
         {status === "idle" && (
