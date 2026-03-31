@@ -7,6 +7,7 @@ import TranscriptInput from "@/components/input/TranscriptInput";
 import FocusQuestion from "@/components/input/FocusQuestion";
 import PhaseSelector from "@/components/input/PhaseSelector";
 import AnalyzeButton from "@/components/input/AnalyzeButton";
+import SampleSelector from "@/components/input/SampleSelector";
 import ResultsContainer from "@/components/results/ResultsContainer";
 import LoadingState from "@/components/shared/LoadingState";
 import ErrorState from "@/components/shared/ErrorState";
@@ -18,6 +19,7 @@ export default function Home() {
   const [status, setStatus] = useState("idle"); // idle | loading | results | error
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [selectedSample, setSelectedSample] = useState(null);
 
   async function handleAnalyze() {
     if (!transcript.trim()) return;
@@ -53,10 +55,20 @@ export default function Home() {
     setTranscript("");
     setFocusQuestion("");
     setPhase("exploratory");
+    setSelectedSample(null);
   }
 
   function handleRetry() {
     handleAnalyze();
+  }
+
+  function handleSampleSelect(sample) {
+    setTranscript(sample.transcript);
+    setPhase(sample.phase);
+    setSelectedSample(sample.id);
+    if (sample.focusQuestion) {
+      setFocusQuestion(sample.focusQuestion);
+    }
   }
 
   return (
@@ -77,6 +89,7 @@ export default function Home() {
             </div>
 
             <div className="bg-surface rounded-xl shadow-sm p-6 space-y-5">
+              <SampleSelector selected={selectedSample} onSelect={handleSampleSelect} />
               <TranscriptInput value={transcript} onChange={setTranscript} />
               <FocusQuestion
                 value={focusQuestion}
